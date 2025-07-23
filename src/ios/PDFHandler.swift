@@ -39,7 +39,7 @@ import UIKit
 
         let share = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(self.sharePDF(_:)))
         let search = UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(self.searchPDF(_:)))
-        let printBtn = UIBarButtonItem(title: "🖨", style: .plain, target: self, action: #selector(self.printPDF(_:)))
+        let printBtn = UIBarButtonItem(image:  UIImage(systemName: "printer"), style: .plain, target: self, action: #selector(self.printPDF(_:)))
         // Moved buttons to bottom toolbar
         let toolbar = UIToolbar()
         toolbar.translatesAutoresizingMaskIntoConstraints = false

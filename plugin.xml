@@ -2,7 +2,7 @@
 <plugin id="cordova-plugin-pdfviewer" version="1.0.0" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
   <name>PDFViewer</name>
   <js-module src="www/PDFHandler.js" name="PDFHandler">
-    <clobbers target="PDFHandler" />
+    <merges target="plugins.PDFHandler" />
   </js-module>
   
   <platform name="android">
@@ -20,7 +20,8 @@
         <param name="ios-package" value="PDFHandler" />
         <param name="onload" value="true" />
       </feature>
-      <preference name="SwiftVersion" value="5.0" />
     </config-file>
+  
+    <preference name="SwiftVersion" value="5.0" />
   </platform>
 </plugin>

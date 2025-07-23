@@ -42,6 +42,9 @@ public class PDFHandler extends CordovaPlugin {
       Intent intent = new Intent(cordova.getContext(), Class.forName("com.afreakyelf.viewer.PdfViewerActivity"));
       intent.putExtra("pdfPath", path.getAbsolutePath());
       intent.putExtra("title", "PDF Viewer");
+      intent.putExtra("showShareButton", true);
+      intent.putExtra("showPrintButton", true);
+      intent.putExtra("showSearchButton", true);
       cordova.getActivity().startActivity(intent);
       callbackContext.success("PDF opened successfully");
     } catch (Exception e) {

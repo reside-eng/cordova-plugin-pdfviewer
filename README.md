@@ -11,5 +11,5 @@ cordova plugin add https://github.com/reside-eng/cordova-plugin-pdfviewer.git
 ## Usage
 
 ```javascript
-window.plugins.PDFHandler.downloadFile(url, success, error);
+window.plugins.PDFHandler.downloadFile({ url: 'https://example.com/file.pdf' }, success, error);
 ```

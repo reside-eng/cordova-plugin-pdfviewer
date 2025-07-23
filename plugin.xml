@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin id="cordova-plugin-pdfviewer" version="1.0.0" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+  <name>PDFViewer</name>
+  <js-module src="www/PDFHandler.js" name="PDFHandler">
+    <clobbers target="PDFHandler" />
+  </js-module>
+  
+  <platform name="android">
+    <source-file src="src/android/PDFHandler.java" target-dir="src/com/pdfviewer" />
+    <config-file target="AndroidManifest.xml" parent="/manifest">
+      <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    </config-file>
+    <framework src="androidx.appcompat:appcompat:1.6.1" />
+  </platform>
+
+  <platform name="ios">
+    <source-file src="src/ios/PDFHandler.swift" />
+    <config-file target="config.xml" parent="/*">
+      <feature name="PDFHandler">
+        <param name="ios-package" value="PDFHandler" />
+        <param name="onload" value="true" />
+      </feature>
+    </config-file>
+  </platform>
+</plugin>

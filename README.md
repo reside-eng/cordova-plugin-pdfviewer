@@ -1,0 +1,15 @@
+# Cordova PDF Viewer Plugin
+
+This plugin allows you to open PDF files in a web view.
+
+## Installation
+
+```bash
+cordova plugin add https://github.com/reside-eng/cordova-plugin-pdfviewer.git
+```
+
+## Usage
+
+```javascript
+PDFHandler.downloadFile(url, success, error);
+```

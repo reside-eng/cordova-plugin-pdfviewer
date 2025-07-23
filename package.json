@@ -1,0 +1,31 @@
+{
+  "name": "cordova-plugin-pdfviewer",
+  "version": "1.5.3",
+  "description": "Cordova Plugin for opening PDF files",
+  "cordova": {
+    "id": "cordova-plugin-pdfviewer",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reside-eng/cordova-plugin-pdfviewer.git"
+  },
+  "keywords": [
+    "pdf",
+    "ios",
+    "android",
+    "ionic",
+    "ecosystem:cordova",
+    "cordova-ios",
+    "cordova-android"
+  ],
+  "author": "Side Engineering",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/reside-eng/cordova-plugin-pdfviewer/issues"
+  },
+  "homepage": "https://github.com/reside-eng/cordova-plugin-pdfviewer#readme"
+}

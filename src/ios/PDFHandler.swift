@@ -38,11 +38,24 @@ import UIKit
 
         let share = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(self.sharePDF(_:)))
         let search = UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(self.searchPDF(_:)))
-        let printBtn = UIBarButtonItem(barButtonSystemItem: .print, target: self, action: #selector(self.printPDF(_:)))
-        vc.navigationItem.rightBarButtonItems = [share, search, printBtn]
+        let printBtn = UIBarButtonItem(title: "🖨", style: .plain, target: self, action: #selector(self.printPDF(_:)))
+        // Moved buttons to bottom toolbar
+        let toolbar = UIToolbar()
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        toolbar.items = [share, UIBarButtonItem.flexibleSpace(), search, UIBarButtonItem.flexibleSpace(), printBtn]
+        vc.view.addSubview(toolbar)
+
+        NSLayoutConstraint.activate([
+          toolbar.bottomAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor),
+          toolbar.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
+          toolbar.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
+          toolbar.heightAnchor.constraint(equalToConstant: 44)
+        ])
 
         let done = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(self.dismissPDFView))
-        vc.navigationItem.leftBarButtonItem = done
+        vc.navigationItem.rightBarButtonItem = done
+        let title = url.lastPathComponent
+        vc.title = title.count > 30 ? String(title.prefix(27)) + "..." : title
 
         let nav = UINavigationController(rootViewController: vc)
         objc_setAssociatedObject(nav, &AssociatedKeys.documentURL, localURL, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)

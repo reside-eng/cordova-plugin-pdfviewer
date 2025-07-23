@@ -1,19 +1,20 @@
-
-// src/ios/PDFHandler.swift
 import Foundation
 import PDFKit
 
 @objc(PDFHandler) class PDFHandler: CDVPlugin {
-  @objc(downloadFile:withCallbackId:)
+  @objc(downloadFile:withCommand:)
   func downloadFile(command: CDVInvokedUrlCommand) {
-    guard let urlString = command.arguments[0] as? String, let url = URL(string: urlString) else {
-      self.commandDelegate?.send(CDVPluginResult(status: .error, messageAs: "Invalid URL"), callbackId: command.callbackId)
+    guard let urlString = command.arguments[0] as? String,
+          let url = URL(string: urlString) else {
+      let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid URL")
+      self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
       return
     }
 
-    let task = URLSession.shared.downloadTask(with: url) { localURL, _, error in
+    let task = URLSession.shared.downloadTask(with: url) { localURL, response, error in
       guard let localURL = localURL, error == nil else {
-        self.commandDelegate?.send(CDVPluginResult(status: .error, messageAs: error?.localizedDescription), callbackId: command.callbackId)
+        let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error?.localizedDescription)
+        self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
         return
       }
 
@@ -24,9 +25,10 @@ import PDFKit
 
         let vc = UIViewController()
         vc.view = pdfView
-        self.viewController.present(vc, animated: true)
+        self.viewController.present(vc, animated: true, completion: nil)
 
-        self.commandDelegate?.send(CDVPluginResult(status: .ok, messageAs: "PDF opened successfully"), callbackId: command.callbackId)
+        let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "PDF opened successfully")
+        self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
       }
     }
     task.resume()

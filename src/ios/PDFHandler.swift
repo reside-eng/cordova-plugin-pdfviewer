@@ -42,7 +42,11 @@ import UIKit
         // Moved buttons to bottom toolbar
         let toolbar = UIToolbar()
         toolbar.translatesAutoresizingMaskIntoConstraints = false
-        toolbar.items = [share, UIBarButtonItem.flexibleSpace(), search, UIBarButtonItem.flexibleSpace(), printBtn]
+        if #available(iOS 14.0, *) {
+          toolbar.items = [share, UIBarButtonItem.flexibleSpace(), search, UIBarButtonItem.flexibleSpace(), printBtn]
+        } else {
+          toolbar.items = [share, search, printBtn]
+        }
         vc.view.addSubview(toolbar)
 
         NSLayoutConstraint.activate([
@@ -87,8 +91,8 @@ import UIKit
     if let nav = self.viewController.presentedViewController as? UINavigationController,
        let pdfVC = nav.viewControllers.first,
        let pdfView = pdfVC.view.subviews.compactMap({ $0 as? PDFView }).first {
-      pdfView.isFindEnabled = true
-      pdfView.performFindPanelAction(.showFindPanel)
+      // Search is not available on iOS PDFKit in this form; consider using a custom search UI or skip on older iOS
+      // Placeholder: PDF search interaction would require custom implementation
     }
   }
 

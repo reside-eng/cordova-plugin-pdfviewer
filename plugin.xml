@@ -20,8 +20,8 @@
         <param name="ios-package" value="PDFHandler" />
         <param name="onload" value="true" />
       </feature>
+      <preference name="SwiftVersion" value="5.0" />
     </config-file>
   
-    <preference name="SwiftVersion" value="5.0" />
   </platform>
 </plugin>

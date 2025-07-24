@@ -241,6 +241,13 @@ import UIKit
 
           let nav = UINavigationController(rootViewController: vc)
           nav.modalPresentationStyle = .fullScreen
+          
+          // Configure navigation bar appearance to prevent color changes when scrolling
+          let appearance = UINavigationBarAppearance()
+          appearance.configureWithDefaultBackground()
+          nav.navigationBar.standardAppearance = appearance
+          nav.navigationBar.scrollEdgeAppearance = appearance
+          nav.navigationBar.compactAppearance = appearance
           objc_setAssociatedObject(nav, &AssociatedKeys.documentURL, persistentURL, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
           objc_setAssociatedObject(self, &AssociatedKeys.navigationController, nav, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
           self.viewController.present(nav, animated: true, completion: nil)

@@ -32,10 +32,27 @@ import UIKit
         pdfView.autoScales = true
         vc.view.addSubview(pdfView)
 
+        // Setup toolbar first so we can reference it in PDF view constraints
+        let share = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(self.sharePDF(_:)))
+        let search = UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(self.searchPDF(_:)))
+        let printBtn = UIBarButtonItem(image: UIImage(systemName: "printer"), style: .plain, target: self, action: #selector(self.printPDF(_:)))
+        let toolbar = UIToolbar()
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        toolbar.items = [share, spacer, search, spacer, printBtn]
+        vc.view.addSubview(toolbar)
+
+        NSLayoutConstraint.activate([
+          toolbar.bottomAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor),
+          toolbar.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
+          toolbar.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
+          toolbar.heightAnchor.constraint(equalToConstant: 44)
+        ])
+
         pdfView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
           pdfView.topAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.topAnchor),
-          pdfView.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
+          pdfView.bottomAnchor.constraint(equalTo: toolbar.topAnchor),
           pdfView.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
           pdfView.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor)
         ])
@@ -94,22 +111,7 @@ import UIKit
           print("Failed to persist PDF file: \(error.localizedDescription)")
         }
 
-        // Setup toolbar and buttons
-        let share = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(self.sharePDF(_:)))
-        let search = UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(self.searchPDF(_:)))
-        let printBtn = UIBarButtonItem(image: UIImage(systemName: "printer"), style: .plain, target: self, action: #selector(self.printPDF(_:)))
-        let toolbar = UIToolbar()
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        toolbar.items = [share, spacer, search, spacer, printBtn]
-        vc.view.addSubview(toolbar)
-
-        NSLayoutConstraint.activate([
-          toolbar.bottomAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor),
-          toolbar.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
-          toolbar.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-          toolbar.heightAnchor.constraint(equalToConstant: 44)
-        ])
+        // Toolbar setup moved above PDF view constraints
 
         // Setup navigation bar
         let done = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(self.dismissPDFView))

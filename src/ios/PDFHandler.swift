@@ -7,6 +7,35 @@ import UIKit
     @objc(downloadFile:)
   func downloadFile(_ command: CDVInvokedUrlCommand) {
     guard let urlString = command.arguments[0] as? String,
+          let encoded = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+          let url = URL(string: encoded) else {
+      let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid URL")
+      self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
+      return
+    }
+
+    // Handle CSV and XLSX directly with native share
+    let lowercased = url.pathExtension.lowercased()
+    if lowercased != "pdf" {
+      let task = URLSession.shared.downloadTask(with: url) { localURL, response, error in
+        guard let localURL = localURL, error == nil else {
+          let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error?.localizedDescription)
+          self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
+          return
+        }
+
+        DispatchQueue.main.async {
+          let activityVC = UIActivityViewController(activityItems: [localURL], applicationActivities: nil)
+          self.viewController.present(activityVC, animated: true)
+
+          let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Share sheet presented for \(lowercased.uppercased()) file")
+          self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
+        }
+      }
+      task.resume()
+      return
+    }
+    guard let urlString = command.arguments[0] as? String,
       let encoded = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
       let url = URL(string: encoded) else {
       let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid URL")

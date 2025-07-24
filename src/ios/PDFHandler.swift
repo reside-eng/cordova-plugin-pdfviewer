@@ -141,23 +141,11 @@ import UIKit
             return
           }
           
-          // Try to read the first few bytes to verify it's a PDF
+          // Log file header for debugging but don't reject based on it
           if let fileData = try? Data(contentsOf: persistentURL, options: .mappedIfSafe) {
-            let pdfHeader = fileData.prefix(4)
+            let pdfHeader = fileData.prefix(10) // Read more bytes for better debugging
             let pdfHeaderString = String(data: pdfHeader, encoding: .ascii) ?? ""
             print("File header: \(pdfHeaderString)")
-            
-            if !pdfHeaderString.hasPrefix("%PDF") {
-              print("Error: File does not appear to be a valid PDF (header: \(pdfHeaderString))")
-              let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid PDF file format")
-              self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
-              return
-            }
-          } else {
-            print("Error: Could not read file data")
-            let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Could not read PDF file")
-            self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
-            return
           }
           
           // Try creating PDF document with additional error handling
@@ -176,7 +164,21 @@ import UIKit
                 print("Successfully created PDFDocument from Data")
               } else {
                 print("Both URL and Data-based PDFDocument creation failed")
-                let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Failed to load PDF document")
+                
+                // Provide more helpful error message based on file content
+                var errorMessage = "Failed to load PDF document"
+                if let fileData = try? Data(contentsOf: persistentURL, options: .mappedIfSafe) {
+                  let header = String(data: fileData.prefix(20), encoding: .ascii) ?? ""
+                  if header.hasPrefix("<?xml") || header.contains("<html") {
+                    errorMessage = "Downloaded file is not a PDF (appears to be XML/HTML content). Check if the URL requires authentication or redirects to an error page."
+                  } else if header.isEmpty {
+                    errorMessage = "Downloaded file is empty"
+                  } else if !header.hasPrefix("%PDF") {
+                    errorMessage = "Downloaded file is not a valid PDF format"
+                  }
+                }
+                
+                let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: errorMessage)
                 self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
                 return
               }

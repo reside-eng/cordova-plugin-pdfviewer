@@ -17,13 +17,27 @@ import UIKit
       guard let localURL = localURL, error == nil else {
         let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error?.localizedDescription)
         self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
+        return;
+      }
+
+      // --- Begin: Copy file to Documents directory with original filename ---
+      let originalFilename = url.lastPathComponent
+      let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+      let destinationURL = documentsDirectory.appendingPathComponent(originalFilename)
+      try? FileManager.default.removeItem(at: destinationURL)
+      do {
+        try FileManager.default.copyItem(at: localURL, to: destinationURL)
+      } catch {
+        let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Failed to copy file: \(error.localizedDescription)")
+        self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
         return
       }
+      // --- End: Copy file to Documents directory with original filename ---
 
       DispatchQueue.main.async {
         let pdfView = PDFView(frame: self.viewController.view.bounds)
         pdfView.autoScales = true
-        pdfView.document = PDFDocument(url: localURL)
+        pdfView.document = PDFDocument(url: destinationURL)
 
         let vc = UIViewController()
         vc.view.backgroundColor = .white
@@ -63,7 +77,7 @@ import UIKit
         vc.title = title.count > 30 ? String(title.prefix(27)) + "..." : title
 
         let nav = UINavigationController(rootViewController: vc)
-        objc_setAssociatedObject(nav, &AssociatedKeys.documentURL, localURL, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(nav, &AssociatedKeys.documentURL, destinationURL, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         objc_setAssociatedObject(self, &AssociatedKeys.navigationController, nav, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         self.viewController.present(nav, animated: true, completion: nil)
 

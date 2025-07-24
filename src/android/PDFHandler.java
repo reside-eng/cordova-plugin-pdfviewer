@@ -31,7 +31,8 @@ public class PDFHandler extends CordovaPlugin {
       URL url = new URL(fileUrl);
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
       connection.connect();
-      File path = new File(cordova.getContext().getExternalFilesDir(null), "downloaded.pdf");
+      String extension = fileUrl.substring(fileUrl.lastIndexOf('.') + 1).toLowerCase();
+      File path = new File(cordova.getContext().getExternalFilesDir(null), "downloaded." + extension);
       FileOutputStream output = new FileOutputStream(path);
       InputStream input = connection.getInputStream();
       byte[] buffer = new byte[4096];
@@ -39,12 +40,21 @@ public class PDFHandler extends CordovaPlugin {
       while ((len = input.read(buffer)) > 0) output.write(buffer, 0, len);
       output.close(); input.close();
 
-      Intent intent = new Intent(cordova.getContext(), Class.forName("com.afreakyelf.viewer.PdfViewerActivity"));
-      intent.putExtra("pdfPath", path.getAbsolutePath());
-      intent.putExtra("title", "PDF Viewer");
-      intent.putExtra("showShareButton", true);
-      intent.putExtra("showPrintButton", true);
-      intent.putExtra("showSearchButton", true);
+      Intent intent;
+      if ("pdf".equals(extension)) {
+        intent = new Intent(cordova.getContext(), Class.forName("com.afreakyelf.viewer.PdfViewerActivity"));
+        intent.putExtra("pdfPath", path.getAbsolutePath());
+        intent.putExtra("title", "PDF Viewer");
+        intent.putExtra("showShareButton", true);
+        intent.putExtra("showPrintButton", true);
+        intent.putExtra("showSearchButton", true);
+      } else {
+        intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("application/octet-stream");
+        Uri fileUri = FileProvider.getUriForFile(cordova.getContext(), cordova.getContext().getPackageName() + ".provider", path);
+        intent.putExtra(Intent.EXTRA_STREAM, fileUri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      }
       cordova.getActivity().startActivity(intent);
       callbackContext.success("PDF opened successfully");
     } catch (Exception e) {

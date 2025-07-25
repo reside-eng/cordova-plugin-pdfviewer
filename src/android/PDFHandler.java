@@ -73,15 +73,6 @@ public class PDFHandler extends CordovaPlugin {
             Activity activity = cordova.getActivity();
 
             if ("pdf".equals(extension)) {
-                // Intent intent2 = new Intent(Intent.ACTION_VIEW);
-                // intent2.setDataAndType(fileUri, "application/pdf");
-                // intent2.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                // intent2.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                // intent2.setPackage("com.google.android.apps.docs");
-
-
-                // intent = intent2;
-
                 Log.d(TAG, "Attempting to open PDF with Google Docs.");
                 // Try Google Docs first
                 Intent googleDocsIntent = new Intent(Intent.ACTION_VIEW);

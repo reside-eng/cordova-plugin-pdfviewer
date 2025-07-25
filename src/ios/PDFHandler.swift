@@ -6,7 +6,13 @@ import UIKit
     @available(iOS 13.0, *)
     @objc(downloadFile:)
   func downloadFile(_ command: CDVInvokedUrlCommand) {
-    
+    guard let urlString = command.arguments[0] as? String,
+      let encoded = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+      let url = URL(string: encoded) else {
+      let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid URL")
+      self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
+      return
+    }
 
     // Handle CSV and XLSX directly with native share
     let lowercased = url.pathExtension.lowercased()
@@ -27,13 +33,6 @@ import UIKit
         }
       }
       task.resume()
-      return
-    }
-    guard let urlString = command.arguments[0] as? String,
-      let encoded = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-      let url = URL(string: encoded) else {
-      let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid URL")
-      self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
       return
     }
 

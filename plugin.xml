@@ -10,7 +10,25 @@
     <config-file target="AndroidManifest.xml" parent="/manifest">
       <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     </config-file>
-    <framework src="androidx.appcompat:appcompat:1.6.1" />
+    <config-file target="config.xml" parent="/*">
+      <feature name="PDFHandler">
+        <param name="android-package" value="com.pdfviewer.PDFHandler" />
+      </feature>
+    </config-file>
+    <config-file target="AndroidManifest.xml" parent="/manifest/application">
+      <provider
+          android:name="androidx.core.content.FileProvider"
+          android:authorities="${applicationId}.cdv.core.file.provider"
+          android:exported="false"
+          android:grantUriPermissions="true">
+          <meta-data
+              android:name="android.support.FILE_PROVIDER_PATHS"
+              android:resource="@xml/cdv_core_file_provider_paths" />
+      </provider>
+    </config-file>
+    <config-file target="res/xml/cdv_core_file_provider_paths.xml" parent="/*">
+      <external-files-path name="external_files" path="." />
+    </config-file>
   </platform>
 
   <platform name="ios">

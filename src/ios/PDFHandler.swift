@@ -7,8 +7,7 @@ import UIKit
     @objc(downloadFile:)
   func downloadFile(_ command: CDVInvokedUrlCommand) {
     guard let urlString = command.arguments[0] as? String,
-      let encoded = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-      let url = URL(string: encoded) else {
+      let url = URL(string: urlString) else {
       let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid URL")
       self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
       return

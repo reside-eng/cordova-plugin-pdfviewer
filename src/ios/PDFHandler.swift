@@ -342,12 +342,191 @@ import UIKit
   }
 
   @objc func searchPDF(_ sender: UIBarButtonItem) {
-    if let nav = self.viewController.presentedViewController as? UINavigationController,
-       let pdfVC = nav.viewControllers.first,
-       let pdfView = pdfVC.view.subviews.compactMap({ $0 as? PDFView }).first {
-      // Search is not available on iOS PDFKit in this form; consider using a custom search UI or skip on older iOS
-      // Placeholder: PDF search interaction would require custom implementation
+    guard let nav = self.viewController.presentedViewController as? UINavigationController,
+          let pdfVC = nav.viewControllers.first,
+          let pdfView = pdfVC.view.subviews.compactMap({ $0 as? PDFView }).first,
+          let document = pdfView.document else {
+      return
     }
+    
+    // Check if search bar is already visible
+    let existingSearchBar = pdfVC.view.subviews.compactMap({ $0 as? UISearchBar }).first
+    if existingSearchBar != nil {
+      // Toggle off search - remove search bar and clear highlights
+      hideSearchInterface(in: pdfVC, pdfView: pdfView)
+      return
+    }
+    
+    // Show search interface
+    showSearchInterface(in: pdfVC, pdfView: pdfView, document: document)
+  }
+  
+  private func showSearchInterface(in viewController: UIViewController, pdfView: PDFView, document: PDFDocument) {
+    // Create search bar
+    let searchBar = UISearchBar()
+    searchBar.placeholder = "Search in PDF..."
+    searchBar.delegate = self
+    searchBar.searchBarStyle = .minimal
+    searchBar.translatesAutoresizingMaskIntoConstraints = false
+    
+    // Create search results container
+    let searchContainer = UIView()
+    searchContainer.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.95)
+    searchContainer.translatesAutoresizingMaskIntoConstraints = false
+    searchContainer.layer.shadowColor = UIColor.black.cgColor
+    searchContainer.layer.shadowOpacity = 0.1
+    searchContainer.layer.shadowOffset = CGSize(width: 0, height: 2)
+    searchContainer.layer.shadowRadius = 4
+    
+    // Create navigation buttons
+    let prevButton = UIButton(type: .system)
+    prevButton.setImage(UIImage(systemName: "chevron.up"), for: .normal)
+    prevButton.addTarget(self, action: #selector(previousSearchResult), for: .touchUpInside)
+    prevButton.translatesAutoresizingMaskIntoConstraints = false
+    prevButton.isEnabled = false
+    
+    let nextButton = UIButton(type: .system)
+    nextButton.setImage(UIImage(systemName: "chevron.down"), for: .normal)
+    nextButton.addTarget(self, action: #selector(nextSearchResult), for: .touchUpInside)
+    nextButton.translatesAutoresizingMaskIntoConstraints = false
+    nextButton.isEnabled = false
+    
+    let closeButton = UIButton(type: .system)
+    closeButton.setImage(UIImage(systemName: "xmark"), for: .normal)
+    closeButton.addTarget(self, action: #selector(closeSearch), for: .touchUpInside)
+    closeButton.translatesAutoresizingMaskIntoConstraints = false
+    
+    let resultLabel = UILabel()
+    resultLabel.text = ""
+    resultLabel.font = UIFont.systemFont(ofSize: 14)
+    resultLabel.textColor = .secondaryLabel
+    resultLabel.translatesAutoresizingMaskIntoConstraints = false
+    
+    // Add subviews
+    searchContainer.addSubview(searchBar)
+    searchContainer.addSubview(prevButton)
+    searchContainer.addSubview(nextButton)
+    searchContainer.addSubview(closeButton)
+    searchContainer.addSubview(resultLabel)
+    viewController.view.addSubview(searchContainer)
+    
+    // Store references for later use
+    objc_setAssociatedObject(viewController, &AssociatedKeys.searchBar, searchBar, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.searchResults, [], .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.currentSearchIndex, -1, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.prevButton, prevButton, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.nextButton, nextButton, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.resultLabel, resultLabel, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.searchContainer, searchContainer, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    
+    // Setup constraints
+    NSLayoutConstraint.activate([
+      searchContainer.topAnchor.constraint(equalTo: viewController.view.safeAreaLayoutGuide.topAnchor),
+      searchContainer.leadingAnchor.constraint(equalTo: viewController.view.leadingAnchor),
+      searchContainer.trailingAnchor.constraint(equalTo: viewController.view.trailingAnchor),
+      searchContainer.heightAnchor.constraint(equalToConstant: 100),
+      
+      searchBar.topAnchor.constraint(equalTo: searchContainer.topAnchor, constant: 8),
+      searchBar.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 16),
+      searchBar.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor, constant: -8),
+      
+      closeButton.centerYAnchor.constraint(equalTo: searchBar.centerYAnchor),
+      closeButton.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -16),
+      closeButton.widthAnchor.constraint(equalToConstant: 30),
+      closeButton.heightAnchor.constraint(equalToConstant: 30),
+      
+      prevButton.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 8),
+      prevButton.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 16),
+      prevButton.widthAnchor.constraint(equalToConstant: 40),
+      prevButton.heightAnchor.constraint(equalToConstant: 30),
+      
+      nextButton.centerYAnchor.constraint(equalTo: prevButton.centerYAnchor),
+      nextButton.leadingAnchor.constraint(equalTo: prevButton.trailingAnchor, constant: 8),
+      nextButton.widthAnchor.constraint(equalToConstant: 40),
+      nextButton.heightAnchor.constraint(equalToConstant: 30),
+      
+      resultLabel.centerYAnchor.constraint(equalTo: prevButton.centerYAnchor),
+      resultLabel.leadingAnchor.constraint(equalTo: nextButton.trailingAnchor, constant: 16),
+      resultLabel.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -16)
+    ])
+    
+    // Show keyboard
+    searchBar.becomeFirstResponder()
+  }
+  
+  private func hideSearchInterface(in viewController: UIViewController, pdfView: PDFView) {
+    // Clear all highlights
+    pdfView.highlightedSelections = nil
+    
+    // Remove search container
+    if let searchContainer = objc_getAssociatedObject(viewController, &AssociatedKeys.searchContainer) as? UIView {
+      searchContainer.removeFromSuperview()
+    }
+    
+    // Clear associated objects
+    objc_setAssociatedObject(viewController, &AssociatedKeys.searchBar, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.searchResults, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.currentSearchIndex, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.prevButton, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.nextButton, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.resultLabel, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    objc_setAssociatedObject(viewController, &AssociatedKeys.searchContainer, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+  }
+  
+  @objc private func previousSearchResult() {
+    navigateSearchResults(direction: -1)
+  }
+  
+  @objc private func nextSearchResult() {
+    navigateSearchResults(direction: 1)
+  }
+  
+  @objc private func closeSearch() {
+    guard let nav = self.viewController.presentedViewController as? UINavigationController,
+          let pdfVC = nav.viewControllers.first,
+          let pdfView = pdfVC.view.subviews.compactMap({ $0 as? PDFView }).first else {
+      return
+    }
+    hideSearchInterface(in: pdfVC, pdfView: pdfView)
+  }
+  
+  private func navigateSearchResults(direction: Int) {
+    guard let nav = self.viewController.presentedViewController as? UINavigationController,
+          let pdfVC = nav.viewControllers.first,
+          let pdfView = pdfVC.view.subviews.compactMap({ $0 as? PDFView }).first,
+          let searchResults = objc_getAssociatedObject(pdfVC, &AssociatedKeys.searchResults) as? [PDFSelection],
+          !searchResults.isEmpty else {
+      return
+    }
+    
+    let currentIndex = objc_getAssociatedObject(pdfVC, &AssociatedKeys.currentSearchIndex) as? Int ?? -1
+    let newIndex = (currentIndex + direction + searchResults.count) % searchResults.count
+    
+    // Update current index
+    objc_setAssociatedObject(pdfVC, &AssociatedKeys.currentSearchIndex, newIndex, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    
+    // Navigate to the selection
+    let selection = searchResults[newIndex]
+    pdfView.go(to: selection)
+    
+    // Update result label
+    if let resultLabel = objc_getAssociatedObject(pdfVC, &AssociatedKeys.resultLabel) as? UILabel {
+      resultLabel.text = "\(newIndex + 1) of \(searchResults.count)"
+    }
+    
+    // Update button states
+    updateNavigationButtons(for: pdfVC, currentIndex: newIndex, totalResults: searchResults.count)
+  }
+  
+  private func updateNavigationButtons(for viewController: UIViewController, currentIndex: Int, totalResults: Int) {
+    guard let prevButton = objc_getAssociatedObject(viewController, &AssociatedKeys.prevButton) as? UIButton,
+          let nextButton = objc_getAssociatedObject(viewController, &AssociatedKeys.nextButton) as? UIButton else {
+      return
+    }
+    
+    let hasResults = totalResults > 0
+    prevButton.isEnabled = hasResults
+    nextButton.isEnabled = hasResults
   }
 
   @objc func printPDF(_ sender: UIBarButtonItem) {
@@ -365,7 +544,107 @@ import UIKit
   }
 }
 
+// MARK: - UISearchBarDelegate
+extension PDFHandler: UISearchBarDelegate {
+  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+    guard let nav = self.viewController.presentedViewController as? UINavigationController,
+          let pdfVC = nav.viewControllers.first,
+          let pdfView = pdfVC.view.subviews.compactMap({ $0 as? PDFView }).first,
+          let document = pdfView.document else {
+      return
+    }
+    
+    // Clear previous highlights
+    pdfView.highlightedSelections = nil
+    
+    guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      // Clear search results if text is empty
+      objc_setAssociatedObject(pdfVC, &AssociatedKeys.searchResults, [], .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+      objc_setAssociatedObject(pdfVC, &AssociatedKeys.currentSearchIndex, -1, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+      updateSearchResultsUI(for: pdfVC, results: [], currentIndex: -1)
+      return
+    }
+    
+    // Perform search asynchronously to avoid blocking UI
+    DispatchQueue.global(qos: .userInitiated).async {
+      var allSelections: [PDFSelection] = []
+      
+      // Search through all pages
+      for pageIndex in 0..<document.pageCount {
+        guard let page = document.page(at: pageIndex) else { continue }
+        
+        // Find matches in the page text
+        if let pageText = page.string {
+          let searchOptions: NSString.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+          var searchRange = NSRange(location: 0, length: pageText.count)
+          
+          while searchRange.location < pageText.count {
+            let foundRange = (pageText as NSString).range(of: searchText, options: searchOptions, range: searchRange)
+            
+            if foundRange.location == NSNotFound {
+              break
+            }
+            
+            // Create selection for found text
+            if let selection = page.selection(for: foundRange) {
+              allSelections.append(selection)
+            }
+            
+            // Move search range past the found text
+            searchRange.location = foundRange.location + foundRange.length
+            searchRange.length = pageText.count - searchRange.location
+          }
+        }
+      }
+      
+      // Update UI on main thread
+      DispatchQueue.main.async {
+        objc_setAssociatedObject(pdfVC, &AssociatedKeys.searchResults, allSelections, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        
+        if !allSelections.isEmpty {
+          // Highlight all results
+          pdfView.highlightedSelections = allSelections
+          
+          // Go to first result
+          objc_setAssociatedObject(pdfVC, &AssociatedKeys.currentSearchIndex, 0, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+          pdfView.go(to: allSelections[0])
+          
+          self.updateSearchResultsUI(for: pdfVC, results: allSelections, currentIndex: 0)
+        } else {
+          objc_setAssociatedObject(pdfVC, &AssociatedKeys.currentSearchIndex, -1, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+          self.updateSearchResultsUI(for: pdfVC, results: [], currentIndex: -1)
+        }
+      }
+    }
+  }
+  
+  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    searchBar.resignFirstResponder()
+  }
+  
+  private func updateSearchResultsUI(for viewController: UIViewController, results: [PDFSelection], currentIndex: Int) {
+    guard let resultLabel = objc_getAssociatedObject(viewController, &AssociatedKeys.resultLabel) as? UILabel else {
+      return
+    }
+    
+    if results.isEmpty {
+      resultLabel.text = "No results"
+    } else {
+      resultLabel.text = "\(currentIndex + 1) of \(results.count)"
+    }
+    
+    updateNavigationButtons(for: viewController, currentIndex: currentIndex, totalResults: results.count)
+  }
+}
+
 fileprivate struct AssociatedKeys {
   static var documentURL = "documentURL"
   static var navigationController = "navigationController"
+  static var searchBar = "searchBar"
+  static var searchResults = "searchResults"
+  static var currentSearchIndex = "currentSearchIndex"
+  static var prevButton = "prevButton"
+  static var nextButton = "nextButton"
+  static var resultLabel = "resultLabel"
+  static var searchContainer = "searchContainer"
 }

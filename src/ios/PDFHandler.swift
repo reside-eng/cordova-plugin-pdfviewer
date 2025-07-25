@@ -14,6 +14,57 @@ import UIKit
       return
     }
 
+    // Handle non-PDF files with native share
+    let lowercased = url.pathExtension.lowercased()
+    if lowercased != "pdf" {
+      let task = URLSession.shared.downloadTask(with: url) { localURL, response, error in
+        guard let localURL = localURL, error == nil else {
+          let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error?.localizedDescription)
+          self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
+          return
+        }
+
+        // Save to a proper file location that can be shared
+        let fileManager = FileManager.default
+        let documentsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let originalName = url.lastPathComponent.isEmpty ? "download" : url.lastPathComponent
+        let fileName = "\(originalName)_\(timestamp)"
+        let persistentURL = documentsDir.appendingPathComponent(fileName)
+        
+        do {
+          // Remove any existing file
+          try? fileManager.removeItem(at: persistentURL)
+          
+          // Copy the downloaded file to documents directory
+          try fileManager.copyItem(at: localURL, to: persistentURL)
+          
+          DispatchQueue.main.async {
+            let activityVC = UIActivityViewController(activityItems: [persistentURL], applicationActivities: nil)
+            
+            // For iPad, set popover presentation
+            if let popover = activityVC.popoverPresentationController {
+              popover.sourceView = self.viewController.view
+              popover.sourceRect = CGRect(x: self.viewController.view.bounds.midX, y: self.viewController.view.bounds.midY, width: 0, height: 0)
+              popover.permittedArrowDirections = []
+            }
+            
+            self.viewController.present(activityVC, animated: true)
+
+            let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Share sheet presented for \(lowercased.uppercased()) file")
+            self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
+          }
+        } catch {
+          DispatchQueue.main.async {
+            let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Failed to save file: \(error.localizedDescription)")
+            self.commandDelegate?.send(pluginResult, callbackId: command.callbackId)
+          }
+        }
+      }
+      task.resume()
+      return
+    }
+
     let task = URLSession.shared.downloadTask(with: url) { localURL, response, error in
       guard let localURL = localURL, error == nil else {
         let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error?.localizedDescription)

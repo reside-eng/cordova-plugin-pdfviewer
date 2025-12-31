@@ -45,8 +45,20 @@ public class PDFHandler extends CordovaPlugin {
             connection = (HttpURLConnection) url.openConnection();
             connection.connect();
 
-            String extension = fileUrl.substring(fileUrl.lastIndexOf('.') + 1).toLowerCase();
-            String originalFilename = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
+            Uri uri = Uri.parse(fileUrl);
+            String originalFilename = uri.getLastPathSegment();
+            if (originalFilename == null) {
+                originalFilename = "download";
+            } else {
+                originalFilename = originalFilename.replaceAll("[/\\\\]", "_");
+            }
+
+            String extension = "";
+            int dotIndex = originalFilename.lastIndexOf('.');
+            if (dotIndex >= 0) {
+                extension = originalFilename.substring(dotIndex + 1).toLowerCase();
+            }
+
             File path = new File(cordova.getContext().getExternalFilesDir(null), originalFilename);
 
             Log.d(TAG, "Saving file as: " + path.getAbsolutePath());

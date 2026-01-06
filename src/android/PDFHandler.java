@@ -47,7 +47,25 @@ public class PDFHandler extends CordovaPlugin {
 
             String extension = fileUrl.substring(fileUrl.lastIndexOf('.') + 1).toLowerCase();
             String originalFilename = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
-            File path = new File(cordova.getContext().getExternalFilesDir(null), originalFilename);
+            
+            File externalFilesDir = cordova.getContext().getExternalFilesDir(null);
+            if (externalFilesDir == null) {
+                Log.e(TAG, "External files directory is null");
+                callbackContext.error("External storage not available");
+                return;
+            }
+            
+            // Ensure the directory exists
+            if (!externalFilesDir.exists()) {
+                boolean created = externalFilesDir.mkdirs();
+                if (!created) {
+                    Log.e(TAG, "Failed to create directory: " + externalFilesDir.getAbsolutePath());
+                    callbackContext.error("Failed to create download directory");
+                    return;
+                }
+            }
+            
+            File path = new File(externalFilesDir, originalFilename);
 
             Log.d(TAG, "Saving file as: " + path.getAbsolutePath());
 

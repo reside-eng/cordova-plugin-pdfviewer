@@ -47,6 +47,9 @@ public class PDFHandler extends CordovaPlugin {
 
             String extension = fileUrl.substring(fileUrl.lastIndexOf('.') + 1).toLowerCase();
             String originalFilename = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
+            Log.d(TAG, "Original file name: " + originalFilename);
+            Log.d(TAG, "Original file name with second pdf removed: " + originalFilename.replace(".pdf.pdf", ".pdf"));
+
             File path = new File(cordova.getContext().getExternalFilesDir(null), originalFilename);
 
             Log.d(TAG, "Saving file as: " + path.getAbsolutePath());

@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-pdfviewer",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Cordova Plugin for opening PDF files",
   "cordova": {
     "id": "cordova-plugin-pdfviewer",
